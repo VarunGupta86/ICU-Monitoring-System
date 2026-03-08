@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ICU Dashboard</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="min-h-screen bg-slate-950 text-slate-100 p-8 font-sans">
+
+    <header class="mb-10 border-b border-slate-800 pb-6 flex items-center gap-3">
+        <i data-lucide="activity" class="w-8 h-8 text-cyan-400"></i>
+        <h1 class="text-3xl font-light text-cyan-400">Remote ICU Intelligence</h1>
+    </header>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+            <h2 class="text-xl mb-6 text-slate-200 border-b border-slate-800 pb-2">Patient Vitals (Bed 01)</h2>
+            
+            <div class="grid grid-cols-2 gap-4">
+                <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+                    <span class="text-slate-400 text-sm flex items-center gap-2">
+                        <i data-lucide="heart" class="w-4 h-4 text-rose-500"></i> Heart Rate
+                    </span>
+                    <div class="text-4xl font-semibold mt-2"><span id="hr-val">--</span> <span class="text-sm text-slate-500">BPM</span></div>
+                </div>
+                
+                <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+                    <span class="text-slate-400 text-sm flex items-center gap-2">
+                        <i data-lucide="droplet" class="w-4 h-4 text-cyan-500"></i> SpO₂
+                    </span>
+                    <div class="text-4xl font-semibold mt-2"><span id="spo2-val">--</span> <span class="text-sm text-slate-500">%</span></div>
+                </div>
+
+                <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+                    <span class="text-slate-400 text-sm flex items-center gap-2">
+                        <i data-lucide="activity" class="w-4 h-4 text-indigo-500"></i> BP
+                    </span>
+                    <div class="text-3xl font-semibold mt-2"><span id="bp-val">--/--</span> <span class="text-sm text-slate-500">mmHg</span></div>
+                </div>
+
+                <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+                    <span class="text-slate-400 text-sm flex items-center gap-2">
+                        <i data-lucide="thermometer" class="w-4 h-4 text-amber-500"></i> Temp
+                    </span>
+                    <div class="text-3xl font-semibold mt-2"><span id="temp-val">--</span> <span class="text-sm text-slate-500">°C</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+            <h2 class="text-xl mb-6 text-slate-200 border-b border-slate-800 pb-2">Live AI Clinical Report</h2>
+            
+            <div class="space-y-4">
+                <div class="p-4 rounded-xl border bg-slate-800 border-slate-700">
+                    <h3 class="font-bold text-lg text-emerald-400">Status (XGBoost)</h3>
+                    <p id="xgb-status" class="text-slate-300 mt-1">Waiting for data...</p>
+                </div>
+                <div class="p-4 rounded-xl border bg-slate-800 border-slate-700">
+                    <h3 class="font-bold text-lg text-amber-400">Prediction (LSTM)</h3>
+                    <p id="lstm-status" class="text-slate-300 mt-1">Waiting for data...</p>
+                </div>
+                <div class="p-4 rounded-xl border bg-slate-800 border-slate-700">
+                    <h3 class="font-bold text-lg text-indigo-400">Sensors (Isolation Forest)</h3>
+                    <p id="iso-status" class="text-slate-300 mt-1">Waiting for data...</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Initialize the icons
+        lucide.createIcons();
+
+        // Function to fetch data from the FastAPI server
+        async function fetchLiveData() {
+            try {
+                const response = await fetch('http://localhost:8000/api/livedata');
+                const result = await response.json();
+
+                if (result.vitals && result.report) {
+                    // Update Vitals HTML
+                    document.getElementById('hr-val').innerText = result.vitals.heartRate;
+                    document.getElementById('spo2-val').innerText = result.vitals.spo2;
+                    document.getElementById('bp-val').innerText = `${result.vitals.systolic}/${result.vitals.diastolic}`;
+                    document.getElementById('temp-val').innerText = result.vitals.temperature;
+
+                    // Update AI Report HTML
+                    document.getElementById('xgb-status').innerText = result.report.Status;
+                    document.getElementById('lstm-status').innerText = `${result.report.Cardiac_Prediction} - Risk: ${result.report.Risk_Score}`;
+                    document.getElementById('iso-status').innerText = result.report.Sensor_Check;
+                }
+            } catch (error) {
+                console.log("Waiting for Python Backend to start...");
+            }
+        }
+
+        // Fetch data immediately, then repeat every 3 seconds to mimic live refresh rate
+        fetchLiveData();
+        setInterval(fetchLiveData, 3000);
+    </script>
+</body>
+</html>
